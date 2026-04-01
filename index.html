@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Sequential Smart Reminder</title>
+  <style>
+    body {
+      font-family: Arial;
+      text-align: center;
+      background: url('https://images.unsplash.com/photo-1506126613408-eca07ce68773') no-repeat center center fixed;
+      background-size: cover;
+      color: white;
+    }
+
+    .container {
+      background: rgba(0,0,0,0.6);
+      margin: 20px auto;
+      padding: 20px;
+      width: 75%;
+      border-radius: 10px;
+    }
+
+    input, button {
+      padding: 10px;
+      margin: 5px;
+    }
+
+    .task {
+      margin: 10px;
+      padding: 10px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 8px;
+    }
+
+    .completed {
+      text-decoration: line-through;
+      opacity: 0.7;
+    }
+
+    .risk {
+      color: red;
+      font-weight: bold;
+      margin-top: 5px;
+    }
+
+    .ok-btn, .complete-btn {
+      background: #2196F3;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 5px 10px;
+      cursor: pointer;
+      margin-left: 10px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<h1>⏰ Sequential Smart Reminder</h1>
+
+<div class="container">
+  <h2>Set Task Reminder</h2>
+  <input type="text" id="taskName" placeholder="Enter Task Name">
+  <input type="time" id="startTime">
+  <input type="time" id="endTime">
+  <button onclick="addTask()">Set Reminder</button>
+</div>
+
+<div class="container">
+  <h2>Task List</h2>
+  <div id="taskList"></div>
+</div>
+
+<audio id="alarm" loop>
+  <source src="https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3">
+</audio>
+
+<script>
+let tasks = [];
+
+// Add task
+function addTask() {
+  let name = document.getElementById("taskName").value;
+  let start = document.getElementById("startTime").value;
+  let end = document.getElementById("endTime").value;
+
+  if (!name || !start || !end) {
+    alert("Enter all details");
+    return;
+  }
+
+  tasks.push({
+    name,
+    start,
+    end,
+    started: false,      // user pressed OK to start
+    completed: false,    // user pressed Task Completed
+    alerting: false,
+    riskTimeout: null
+  });
+
+  renderTasks();
+}
+
+// Render tasks
+function renderTasks() {
+  let list = document.getElementById("taskList");
+  list.innerHTML = "";
+
+  tasks.forEach((task, index) => {
+    list.innerHTML += `
+      <div class="task ${task.completed ? 'completed' : ''}">
+        ${task.name} (${task.start} → ${task.end})
+        <button class="ok-btn" id="okBtn${index}" onclick="startTask(${index})">OK</button>
+        <button class="complete-btn" id="completeBtn${index}" onclick="completeTask(${index})">Task Completed</button>
+        <span>${task.completed ? "✅ Completed" : task.started ? "⏳ In Progress" : "⏰ Pending"}</span>
+        <div id="risk${index}" class="risk"></div>
+      </div>
+    `;
+  });
+}
+
+// Start task (user presses OK)
+function startTask(index) {
+  let task = tasks[index];
+  task.started = true;
+  task.alerting = false;
+  stopAlarm();
+  document.getElementById(`okBtn${index}`).style.display = "none";
+  document.getElementById(`completeBtn${index}`).style.display = "inline-block";
+  renderTasks();
+}
+
+// Complete task (user presses Task Completed)
+function completeTask(index) {
+  let task = tasks[index];
+  task.completed = true;
+  task.started = false;
+  task.alerting = false;
+  stopAlarm();
+  document.getElementById(`completeBtn${index}`).style.display = "none";
+  document.getElementById(`risk${index}`).innerText = "";
+  renderTasks();
+}
+
+// Check if current time is in window
+function isInTimeRange(current, start, end) {
+  return current >= start && current <= end;
+}
+
+// Reminder engine for **one active task**
+function checkReminders() {
+  let now = new Date().toTimeString().slice(0,5);
+
+  for (let index = 0; index < tasks.length; index++) {
+    let task = tasks[index];
+    if (task.completed) continue;
+
+    // Start time reached, show popup OK if task not started
+    if (isInTimeRange(now, task.start, task.end) && !task.started) {
+      if (!task.alerting) {
+        task.alerting = true;
+        playAlarm();
+        document.getElementById(`okBtn${index}`).style.display = "inline-block";
+
+        task.riskTimeout = setTimeout(() => {
+          if (!task.started) {
+            document.getElementById(`risk${index}`).innerText = "⚠️ You did not start the task!";
+          }
+        }, 10000); // demo 10 sec for starting
+      }
+    }
+
+    // End time reached, task still not completed
+    if (now > task.end && !task.completed) {
+      task.alerting = false;
+      stopAlarm();
+      document.getElementById(`okBtn${index}`).style.display = "none";
+      document.getElementById(`completeBtn${index}`).style.display = "none";
+      if (!task.completed) {
+        document.getElementById(`risk${index}`).innerText = "⚠️ Task Pending! Not Completed";
+      }
+    }
+
+    break; // only one task at a time
+  }
+}
+
+setInterval(checkReminders, 1000);
+
+// Alarm
+function playAlarm() {
+  document.getElementById("alarm").play();
+}
+
+function stopAlarm() {
+  document.getElementById("alarm").pause();
+  document.getElementById("alarm").currentTime = 0;
+}
+</script>
+</body>
+</html>
