@@ -141,6 +141,7 @@ function completeTask(index) {
   document.getElementById(`completeBtn${index}`).style.display = "none";
   document.getElementById(`risk${index}`).innerText = "";
   renderTasks();
+  alert(`✅ Task Finished: ${task.name}`);
 }
 
 // Check if current time is in window
