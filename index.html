@@ -93,8 +93,8 @@ function addTask() {
     name,
     start,
     end,
-    started: false,      // user pressed OK to start
-    completed: false,    // user pressed Task Completed
+    started: false,
+    completed: false,
     alerting: false,
     riskTimeout: null
   });
@@ -148,7 +148,23 @@ function isInTimeRange(current, start, end) {
   return current >= start && current <= end;
 }
 
-// Reminder engine for **one active task**
+// Show popup at start time
+function showTaskPopup(task, index) {
+  playAlarm();
+  let popup = confirm(`⏰ It's time for task: ${task.name}.\nPress OK to start.`);
+  if (popup) {
+    startTask(index);
+  } else {
+    // If user closes popup without OK, still show risk after 10 sec
+    task.riskTimeout = setTimeout(() => {
+      if (!task.started) {
+        document.getElementById(`risk${index}`).innerText = "⚠️ You did not start the task!";
+      }
+    }, 10000);
+  }
+}
+
+// Reminder engine for one active task
 function checkReminders() {
   let now = new Date().toTimeString().slice(0,5);
 
@@ -156,19 +172,10 @@ function checkReminders() {
     let task = tasks[index];
     if (task.completed) continue;
 
-    // Start time reached, show popup OK if task not started
-    if (isInTimeRange(now, task.start, task.end) && !task.started) {
-      if (!task.alerting) {
-        task.alerting = true;
-        playAlarm();
-        document.getElementById(`okBtn${index}`).style.display = "inline-block";
-
-        task.riskTimeout = setTimeout(() => {
-          if (!task.started) {
-            document.getElementById(`risk${index}`).innerText = "⚠️ You did not start the task!";
-          }
-        }, 10000); // demo 10 sec for starting
-      }
+    // Start time reached and task not started
+    if (isInTimeRange(now, task.start, task.end) && !task.started && !task.alerting) {
+      task.alerting = true;
+      showTaskPopup(task, index);
     }
 
     // End time reached, task still not completed
