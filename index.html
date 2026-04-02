@@ -126,8 +126,11 @@ function startTask(index) {
   task.started = true;
   task.alerting = false;
   stopAlarm();
+
+  // Show the "Task Completed" button immediately
   document.getElementById(`okBtn${index}`).style.display = "none";
   document.getElementById(`completeBtn${index}`).style.display = "inline-block";
+
   renderTasks();
 }
 
@@ -138,9 +141,11 @@ function completeTask(index) {
   task.started = false;
   task.alerting = false;
   stopAlarm();
+
   document.getElementById(`completeBtn${index}`).style.display = "none";
   document.getElementById(`risk${index}`).innerText = "";
   renderTasks();
+
   alert(`✅ Task Finished: ${task.name}`);
 }
 
